@@ -22,28 +22,28 @@ function getCode(): string {
 
   async function start() {
     events = [];
+
+    const { name } = await inquirer.prompt<{ name: string }>([
+      {
+        type: 'input',
+        name: 'name',
+        message:
+          'Enter the name you want to record, e.g train-ticket : ',
+      },
+    ]);
+
     const { url } = await inquirer.prompt<{ url: string }>([
       {
         type: 'input',
         name: 'url',
         message:
-          'Enter the url you want to record, e.g https://react-redux.realworld.io: ',
+          'Enter the url you want to record, e.g https://google.com : ',
       },
     ]);
 
     console.log(`Going to open ${url}...`);
     await record(url);
     console.log('Ready to record. You can do any interaction on the page.');
-
-    const { shouldReplay } = await inquirer.prompt<{ shouldReplay: boolean }>([
-      {
-        type: 'confirm',
-        name: 'shouldReplay',
-        message: `Once you want to finish the recording, enter 'y' to start replay: `,
-      },
-    ]);
-
-    emitter.emit('done', shouldReplay);
 
     const { shouldStore } = await inquirer.prompt<{ shouldStore: boolean }>([
       {
@@ -54,7 +54,7 @@ function getCode(): string {
     ]);
 
     if (shouldStore) {
-      saveEvents();
+      saveEvents(url, name);
     }
 
     const { shouldRecordAnother } = await inquirer.prompt<{
@@ -134,26 +134,30 @@ function getCode(): string {
     `);
   }
 
-  function saveEvents() {
+  // TODO: base url should be changed to COMMONNAME like URL
+  function saveEvents(url: string, name: string) {
     const tempFolder = path.join(__dirname, '../temp');
     console.log(tempFolder);
 
     if (!fs.existsSync(tempFolder)) {
       fs.mkdirSync(tempFolder);
     }
+    /*
     const time = new Date()
       .toISOString()
       .replace(/[-|:]/g, '_')
       .replace(/\..+/, '');
-    const fileName = `replay_${time}.html`;
-    const content = `
+    */
+
+    let fileName = `${name}.html`;
+    let content = `
 <!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta http-equiv="X-UA-Compatible" content="ie=edge" />
-    <title>Record @${time}</title>
+    <title>Record @${name}</title>
     <link rel="stylesheet" href="../dist/rrweb.min.css" />
   </head>
   <body>
@@ -173,8 +177,16 @@ function getCode(): string {
   </body>
 </html>  
     `;
-    const savePath = path.resolve(tempFolder, fileName);
+    let savePath = path.resolve(tempFolder, fileName);
     fs.writeFileSync(savePath, content);
+
+    console.log(`Saved at ${savePath}`);
+
+    fileName = `${name}.json`;
+    content = `${JSON.stringify(events)}`;
+    savePath = path.resolve(tempFolder, fileName);
+    fs.writeFileSync(savePath, content);
+
     console.log(`Saved at ${savePath}`);
   }
 
