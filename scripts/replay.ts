@@ -21,7 +21,6 @@ function getCode(): string {
   start();
 
   async function start() {
-    events = [];
     const { name } = await inquirer.prompt<{ name: string }>([
       {
         type: 'input',
@@ -49,8 +48,6 @@ function getCode(): string {
     } else {
       process.exit();
     }
-
-    process.exit();
   }
 
   async function replay(name: string) {
@@ -62,7 +59,8 @@ function getCode(): string {
 
     let fileName = `${name}.json`;
     let savePath = path.resolve(tempFolder, fileName);
-    let events = fs.readFileSync(savePath);
+    //let record = fs.readFileSync(savePath).toJSON().data;
+    let record = JSON.parse(fs.readFileSync(savePath, 'utf8'));
 
     const browser = await puppeteer.launch({
       headless: false,
@@ -75,12 +73,22 @@ function getCode(): string {
       path: path.resolve(__dirname, '../dist/rrweb.min.css'),
     });
 
-  // ${JSON.stringify(events)};
+    //let time = new Date().toISOString().replace(/[-|:]/g, '_').replace(/\..+/, '');
+    //console.log(time);
+
     await page.evaluate(`${code}
-      const events = ${events}; 
+      const events = ${JSON.stringify(record["events"])}; 
       const replayer = new rrweb.Replayer(events);
       replayer.play();
     `);
+
+    // wait for replay time to finish before exiting process
+    await page.waitFor(record["total_time_ms"]);
+
+    //time = new Date().toISOString().replace(/[-|:]/g, '_').replace(/\..+/, '');
+    //console.log(time);
+
+    await browser.close();
   }
 
   process

@@ -41,6 +41,8 @@ function getCode(): string {
       },
     ]);
 
+    let start_time = new Date().getTime();
+
     console.log(`Going to open ${url}...`);
     await record(url);
     console.log('Ready to record. You can do any interaction on the page.');
@@ -53,8 +55,11 @@ function getCode(): string {
       },
     ]);
 
+    let end_time = new Date().getTime();
+
     if (shouldStore) {
-      saveEvents(url, name);
+      let total_time_ms = end_time - start_time;
+      saveEvents(total_time_ms, url, name);
     }
 
     const { shouldRecordAnother } = await inquirer.prompt<{
@@ -135,7 +140,7 @@ function getCode(): string {
   }
 
   // TODO: base url should be changed to COMMONNAME like URL
-  function saveEvents(url: string, name: string) {
+  function saveEvents(total_time_ms: number, url: string, name: string) {
     const tempFolder = path.join(__dirname, '../temp');
     console.log(tempFolder);
 
@@ -180,10 +185,12 @@ function getCode(): string {
     let savePath = path.resolve(tempFolder, fileName);
     fs.writeFileSync(savePath, content);
 
+    let record = { 'total_time_ms': total_time_ms, 'events': events, 'name': name };
+
     console.log(`Saved at ${savePath}`);
 
     fileName = `${name}.json`;
-    content = `${JSON.stringify(events)}`;
+    content = `${JSON.stringify(record)}`;
     savePath = path.resolve(tempFolder, fileName);
     fs.writeFileSync(savePath, content);
 
